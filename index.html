@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Command Atlas</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: oklch(0.975 0.004 75);
+    --bg-2: oklch(0.95 0.006 75);
+    --bg-3: oklch(0.92 0.007 75);
+    --ink: oklch(0.22 0.01 70);
+    --ink-2: oklch(0.4 0.012 70);
+    --ink-3: oklch(0.58 0.012 70);
+    --line: oklch(0.88 0.008 75);
+    --line-2: oklch(0.82 0.01 75);
+    --accent: oklch(0.58 0.15 45);
+    --accent-ink: oklch(0.32 0.11 45);
+    --paper: oklch(0.99 0.003 75);
+
+    /* category hues (low chroma consistent) */
+    --c-session:    oklch(0.62 0.12 30);   /* warm red */
+    --c-context:    oklch(0.62 0.12 75);   /* amber */
+    --c-config:     oklch(0.60 0.11 140);  /* olive green */
+    --c-review:     oklch(0.58 0.12 200);  /* teal */
+    --c-skills:     oklch(0.56 0.13 270);  /* indigo */
+    --c-integ:      oklch(0.58 0.13 310);  /* violet */
+    --c-remote:     oklch(0.60 0.11 350);  /* pink */
+    --c-account:    oklch(0.55 0.09 110);  /* sage */
+    --c-support:    oklch(0.50 0.02 80);   /* neutral */
+    --c-schedule:   oklch(0.60 0.12 240);  /* blue */
+    --c-input:      oklch(0.55 0.10 170);  /* jade */
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, sans-serif; }
+  body { min-height: 100vh; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+  .disp { font-family: 'Fraunces', 'Inter', serif; letter-spacing: -0.01em; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; }
+  input { font: inherit; color: inherit; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+/* =======================================================================
+   COMMAND DATA
+   ======================================================================= */
+const CATEGORIES = [
+  { id: 'session',  label: 'Session',          hint: 'Conversations, branches, rewinds', color: 'var(--c-session)' },
+  { id: 'context',  label: 'Context & Memory', hint: 'Capacity, compaction, memory files', color: 'var(--c-context)' },
+  { id: 'config',   label: 'Model & Config',   hint: 'Model, effort, theme, UI',          color: 'var(--c-config)' },
+  { id: 'review',   label: 'Code Work',        hint: 'Review, plan, simplify, batch',     color: 'var(--c-review)' },
+  { id: 'skills',   label: 'Skills & Agents',  hint: 'Skills, plugins, agents, hooks',    color: 'var(--c-skills)' },
+  { id: 'schedule', label: 'Automation',       hint: 'Loops, routines, tasks',            color: 'var(--c-schedule)' },
+  { id: 'integ',    label: 'Integrations',     hint: 'IDE, GitHub, Slack, MCP, Chrome',   color: 'var(--c-integ)' },
+  { id: 'remote',   label: 'Web & Remote',     hint: 'Desktop, mobile, web sessions',     color: 'var(--c-remote)' },
+  { id: 'account',  label: 'Account & Usage',  hint: 'Login, billing, stats, privacy',   color: 'var(--c-account)' },
+  { id: 'input',    label: 'Input',            hint: 'Voice, terminal input bindings',    color: 'var(--c-input)' },
+  { id: 'support',  label: 'Help & Diagnostics', hint: 'Docs, debug, feedback, setup',    color: 'var(--c-support)' },
+];
+
+// glyph ids map to small SVG functions defined below
+const CMDS = [
+  // Session
+  { n: 'clear', a: '/reset · /new', cat: 'session', g: 'erase', s: 'Start a new conversation with empty context.', d: 'Previous conversation stays available in /resume. To free up context while continuing, use /compact instead.' },
+  { n: 'compact', arg: '[instructions]', cat: 'context', g: 'compress', s: 'Summarize the conversation so far to free context.', d: 'Optionally pass focus instructions for the summary.' },
+  { n: 'context', cat: 'context', g: 'grid', s: 'Visualize current context usage as a colored grid.', d: 'Shows optimization suggestions for context-heavy tools, memory bloat, and capacity warnings.' },
+  { n: 'memory', cat: 'context', g: 'book', s: 'Edit CLAUDE.md memory files and auto-memory.', d: 'Enable or disable auto-memory and view auto-memory entries.' },
+  { n: 'init', cat: 'context', g: 'seed', s: 'Initialize project with a CLAUDE.md guide.', d: 'Set CLAUDE_CODE_NEW_INIT=1 for an interactive flow through skills, hooks, and personal memory files.' },
+
+  { n: 'branch', a: '/fork', arg: '[name]', cat: 'session', g: 'branch', s: 'Fork the current conversation at this point.', d: 'Preserves the original — return via /resume.' },
+  { n: 'resume', a: '/continue', arg: '[session]', cat: 'session', g: 'resume', s: 'Resume a conversation by ID or name.', d: 'Or open the session picker.' },
+  { n: 'rewind', a: '/checkpoint · /undo', cat: 'session', g: 'rewind', s: 'Rewind conversation or code to a prior point.', d: 'Also lets you summarize from a selected message.' },
+  { n: 'export', arg: '[filename]', cat: 'session', g: 'out', s: 'Export the current conversation as plain text.', d: 'With a filename writes directly; without, opens a dialog.' },
+  { n: 'copy', arg: '[N]', cat: 'session', g: 'copy', s: 'Copy the last assistant response to clipboard.', d: 'Pass N to copy the Nth-latest. Press w in the picker to write to a file instead.' },
+  { n: 'rename', arg: '[name]', cat: 'session', g: 'tag', s: 'Rename the current session.', d: 'Without a name, auto-generates one from conversation history.' },
+  { n: 'recap', cat: 'session', g: 'summary', s: 'One-line summary of the current session.', d: 'Automatic recap also appears after you\u2019ve been away.' },
+  { n: 'diff', cat: 'session', g: 'diff', s: 'Interactive diff viewer for uncommitted and per-turn changes.', d: 'Left/right to switch between git diff and individual turns; up/down to browse files.' },
+  { n: 'focus', cat: 'session', g: 'focus', s: 'Show only your last prompt + final response.', d: 'Tool calls collapse to one-line diffstats. Fullscreen only.' },
+  { n: 'insights', cat: 'session', g: 'chart', s: 'Analyze your sessions for patterns and friction.', d: 'Report covers project areas, interaction patterns, and friction points.' },
+  { n: 'tasks', a: '/bashes', cat: 'session', g: 'list', s: 'List and manage background tasks.', d: '' },
+  { n: 'btw', arg: '<question>', cat: 'session', g: 'aside', s: 'Ask a quick side question.', d: 'Does not add to the main conversation.' },
+  { n: 'exit', a: '/quit', cat: 'session', g: 'exit', s: 'Exit the CLI.', d: '' },
+  { n: 'add-dir', arg: '<path>', cat: 'session', g: 'folder', s: 'Add a working directory for the current session.', d: 'Most .claude/ config is not discovered from the added directory.' },
+
+  // Config
+  { n: 'model', arg: '[model]', cat: 'config', g: 'model', s: 'Select or change the AI model.', d: 'Left/right to adjust effort level where supported. No arg opens a picker.' },
+  { n: 'effort', arg: '[level|auto]', cat: 'config', g: 'gauge', s: 'Set the model effort level.', d: 'low, medium, high, xhigh, or max. auto resets to default. Applies immediately.' },
+  { n: 'config', a: '/settings', cat: 'config', g: 'gear', s: 'Open Settings to adjust theme, model, output style.', d: '' },
+  { n: 'theme', cat: 'config', g: 'theme', s: 'Change the color theme.', d: 'Includes auto (follows terminal), light/dark, daltonized, and ANSI themes.' },
+  { n: 'color', arg: '[color|default]', cat: 'config', g: 'swatch', s: 'Set the prompt bar color for this session.', d: 'red, blue, green, yellow, purple, orange, pink, cyan — or default.' },
+  { n: 'statusline', cat: 'config', g: 'statusline', s: 'Configure the status line.', d: 'Describe what you want, or run without arguments to auto-configure from your shell prompt.' },
+  { n: 'keybindings', cat: 'config', g: 'keys', s: 'Open or create your keybindings file.', d: '' },
+  { n: 'tui', arg: '[default|fullscreen]', cat: 'config', g: 'window', s: 'Set terminal UI renderer.', d: 'fullscreen enables the flicker-free alt-screen renderer.' },
+  { n: 'fast', arg: '[on|off]', cat: 'config', g: 'bolt', s: 'Toggle fast mode.', d: '' },
+  { n: 'sandbox', cat: 'config', g: 'shield', s: 'Toggle sandbox mode.', d: 'Available on supported platforms only.' },
+  { n: 'permissions', a: '/allowed-tools', cat: 'config', g: 'lock', s: 'Manage allow, ask, and deny rules for tools.', d: 'Interactive dialog to view rules by scope, add/remove, and review auto denials.' },
+  { n: 'hooks', cat: 'skills', g: 'hook', s: 'View hook configurations for tool events.', d: '' },
+
+  // Code work
+  { n: 'review', arg: '[PR]', cat: 'review', g: 'review', s: 'Review a pull request locally.', d: 'For a deeper cloud-based review, see /ultrareview.' },
+  { n: 'ultrareview', arg: '[PR]', cat: 'review', g: 'ultrareview', s: 'Multi-agent code review in a cloud sandbox.', d: '3 free runs on Pro and Max, then requires extra usage.' },
+  { n: 'security-review', cat: 'review', g: 'security', s: 'Scan pending changes for security vulnerabilities.', d: 'Reviews git diff for injection, auth issues, and data exposure.' },
+  { n: 'simplify', arg: '[focus]', cat: 'review', g: 'simplify', s: 'Review recently changed files for reuse, quality, efficiency.', d: 'Spawns three review agents in parallel, aggregates findings, applies fixes.' },
+  { n: 'batch', arg: '<instruction>', cat: 'review', g: 'batch', s: 'Orchestrate large-scale changes across a codebase in parallel.', d: 'Decomposes work into 5\u201330 independent units, spawns an agent per unit in an isolated worktree.' },
+  { n: 'plan', arg: '[description]', cat: 'review', g: 'plan', s: 'Enter plan mode from the prompt.', d: 'Pass a description to enter plan mode and start immediately.' },
+  { n: 'ultraplan', arg: '<prompt>', cat: 'review', g: 'ultraplan', s: 'Draft a plan remotely, review in browser, execute.', d: '' },
+  { n: 'autofix-pr', arg: '[prompt]', cat: 'review', g: 'autofix', s: 'Spawn a remote session that fixes PR CI failures and comments.', d: 'Detects the open PR from your branch with gh pr view.' },
+  { n: 'pr-comments', arg: '[PR]', cat: 'review', g: 'comments', s: 'Fetch PR comments.', d: 'Removed in v2.1.91. Ask Claude directly to view pull request comments instead.' },
+
+  // Skills & Agents
+  { n: 'skills', cat: 'skills', g: 'skill', s: 'List available skills.', d: 'Press t to sort by token count.' },
+  { n: 'agents', cat: 'skills', g: 'agent', s: 'Manage agent configurations.', d: '' },
+  { n: 'plugin', cat: 'skills', g: 'plug', s: 'Manage Claude Code plugins.', d: '' },
+  { n: 'reload-plugins', cat: 'skills', g: 'reload', s: 'Reload active plugins to apply pending changes.', d: 'Reports counts for each reloaded component and flags load errors.' },
+  { n: 'mcp', cat: 'integ', g: 'mcp', s: 'Manage MCP server connections and OAuth.', d: '' },
+  { n: 'fewer-permission-prompts', cat: 'config', g: 'filter', s: 'Scan transcripts and allowlist safe commands.', d: 'Adds a prioritized allowlist to project .claude/settings.json.' },
+  { n: 'powerup', cat: 'skills', g: 'spark', s: 'Discover features through interactive lessons.', d: 'Animated demos teach Claude Code capabilities.' },
+
+  // Automation
+  { n: 'loop', a: '/proactive', arg: '[interval] [prompt]', cat: 'schedule', g: 'loop', s: 'Run a prompt repeatedly while the session stays open.', d: 'Omit interval to self-pace. Omit prompt for autonomous maintenance check.' },
+  { n: 'schedule', a: '/routines', arg: '[description]', cat: 'schedule', g: 'calendar', s: 'Create, update, list, or run routines.', d: 'Claude walks you through setup conversationally.' },
+
+  // Integrations
+  { n: 'chrome', cat: 'integ', g: 'chrome', s: 'Configure Claude in Chrome settings.', d: '' },
+  { n: 'ide', cat: 'integ', g: 'ide', s: 'Manage IDE integrations and show status.', d: '' },
+  { n: 'install-github-app', cat: 'integ', g: 'github', s: 'Set up the Claude GitHub Actions app.', d: 'Walks through selecting a repo and configuring the integration.' },
+  { n: 'install-slack-app', cat: 'integ', g: 'slack', s: 'Install the Claude Slack app.', d: 'Opens a browser to complete the OAuth flow.' },
+  { n: 'claude-api', cat: 'integ', g: 'api', s: 'Load Claude API reference for your language.', d: 'Python, TypeScript, Java, Go, Ruby, C#, PHP, or cURL. Activates automatically when code imports the SDK.' },
+
+  // Web & Remote
+  { n: 'desktop', a: '/app', cat: 'remote', g: 'desktop', s: 'Continue the current session in the Desktop app.', d: 'macOS and Windows only.' },
+  { n: 'mobile', a: '/ios · /android', cat: 'remote', g: 'mobile', s: 'Show QR code to download the mobile app.', d: '' },
+  { n: 'remote-control', a: '/rc', cat: 'remote', g: 'remote', s: 'Make this session available for remote control.', d: 'Control from claude.ai.' },
+  { n: 'remote-env', cat: 'remote', g: 'cloud-gear', s: 'Configure the default remote environment.', d: 'For web sessions started with --remote.' },
+  { n: 'teleport', a: '/tp', cat: 'remote', g: 'teleport', s: 'Pull a web session into this terminal.', d: 'Opens a picker, fetches the branch and conversation.' },
+  { n: 'web-setup', cat: 'remote', g: 'link', s: 'Connect GitHub for Claude Code on the web.', d: 'Uses your local gh CLI credentials.' },
+
+  // Account & Usage
+  { n: 'login', cat: 'account', g: 'login', s: 'Sign in to your Anthropic account.', d: '' },
+  { n: 'logout', cat: 'account', g: 'logout', s: 'Sign out.', d: '' },
+  { n: 'upgrade', cat: 'account', g: 'upgrade', s: 'Open the upgrade page.', d: 'Switch to a higher plan tier.' },
+  { n: 'extra-usage', cat: 'account', g: 'fuel', s: 'Configure extra usage past rate limits.', d: '' },
+  { n: 'cost', cat: 'account', g: 'coin', s: 'Show token usage statistics.', d: '' },
+  { n: 'usage', cat: 'account', g: 'meter', s: 'Show plan usage limits and rate limits.', d: '' },
+  { n: 'stats', cat: 'account', g: 'bars', s: 'Visualize daily usage, history, streaks.', d: '' },
+  { n: 'privacy-settings', cat: 'account', g: 'privacy', s: 'View and update your privacy settings.', d: 'Only for Pro and Max.' },
+  { n: 'passes', cat: 'account', g: 'gift', s: 'Share a free week with friends.', d: 'Only visible if your account is eligible.' },
+  { n: 'status', cat: 'support', g: 'status', s: 'Open Settings (Status tab).', d: 'Shows version, model, account, connectivity.' },
+
+  // Input
+  { n: 'voice', cat: 'input', g: 'voice', s: 'Toggle push-to-talk voice dictation.', d: 'Requires a Claude.ai account.' },
+  { n: 'terminal-setup', cat: 'input', g: 'terminal', s: 'Configure terminal keybindings.', d: 'Shift+Enter and other shortcuts. Visible only in terminals that need it.' },
+  { n: 'vim', cat: 'input', g: 'vim', s: 'Removed. Toggle via /config \u2192 Editor mode.', d: 'Removed in v2.1.92.' },
+
+  // Support
+  { n: 'help', cat: 'support', g: 'help', s: 'Show help and available commands.', d: '' },
+  { n: 'doctor', cat: 'support', g: 'doctor', s: 'Diagnose and verify your installation.', d: 'Press f to have Claude fix reported issues.' },
+  { n: 'debug', arg: '[description]', cat: 'support', g: 'bug', s: 'Enable debug logging and troubleshoot.', d: 'Optionally describe the issue to focus the analysis.' },
+  { n: 'feedback', a: '/bug', arg: '[report]', cat: 'support', g: 'mail', s: 'Submit feedback about Claude Code.', d: '' },
+  { n: 'release-notes', cat: 'support', g: 'notes', s: 'View the changelog in a version picker.', d: '' },
+  { n: 'heapdump', cat: 'support', g: 'disk', s: 'Write a JS heap snapshot for memory diagnostics.', d: 'Saves to ~/Desktop.' },
+  { n: 'stickers', cat: 'support', g: 'sticker', s: 'Order Claude Code stickers.', d: '' },
+  { n: 'team-onboarding', cat: 'support', g: 'team', s: 'Generate a team onboarding guide.', d: 'Analyzes last 30 days of sessions and produces a paste-ready markdown guide.' },
+  { n: 'setup-bedrock', cat: 'integ', g: 'bedrock', s: 'Configure Amazon Bedrock.', d: 'Only visible when CLAUDE_CODE_USE_BEDROCK=1.' },
+  { n: 'setup-vertex', cat: 'integ', g: 'vertex', s: 'Configure Google Vertex AI.', d: 'Only visible when CLAUDE_CODE_USE_VERTEX=1.' },
+];
+
+/* =======================================================================
+   GLYPHS — simple geometric SVGs, 28x28
+   ======================================================================= */
+const G = ({children, sw=1.6}) => (
+  <svg viewBox="0 0 28 28" width="28" height="28" fill="none"
+       stroke="currentColor" strokeWidth={sw}
+       strokeLinecap="round" strokeLinejoin="round">
+    {children}
+  </svg>
+);
+
+const GLYPHS = {
+  erase:      () => <G><rect x="4" y="10" width="14" height="8" rx="1.5"/><path d="M10 10v8M18 14h6M20 11l3 3-3 3"/></G>,
+  compress:   () => <G><path d="M4 8h7M4 14h13M4 20h10"/><path d="M22 7l-3 3 3 3M22 17l-3 3 3 3" transform="translate(-2 0)"/></G>,
+  grid:       () => <G><rect x="4" y="4" width="7" height="7"/><rect x="4" y="17" width="7" height="7"/><rect x="17" y="4" width="7" height="7" fill="currentColor" opacity="0.25"/><rect x="17" y="17" width="7" height="7"/></G>,
+  book:       () => <G><path d="M5 5h8a3 3 0 013 3v15"/><path d="M23 5h-8a3 3 0 00-3 3v15"/><path d="M5 5v15h8M23 5v15h-8"/></G>,
+  seed:       () => <G><path d="M14 24v-10"/><path d="M14 14c0-4 3-7 7-7 0 4-3 7-7 7z"/><path d="M14 14c0-4-3-7-7-7 0 4 3 7 7 7z"/></G>,
+  branch:     () => <G><circle cx="7" cy="7" r="2"/><circle cx="7" cy="21" r="2"/><circle cx="21" cy="14" r="2"/><path d="M7 9v10M7 14c4 0 6-2 6-5v0c0 3 2 5 6 5"/></G>,
+  resume:     () => <G><path d="M5 14a9 9 0 109-9"/><path d="M14 2v5h-5"/><path d="M12 14l4 3-4 3z" fill="currentColor"/></G>,
+  rewind:     () => <G><path d="M14 14l-7-4v8zM22 14l-7-4v8z"/></G>,
+  out:        () => <G><rect x="4" y="6" width="14" height="16" rx="1.5"/><path d="M14 14h10M20 10l4 4-4 4"/></G>,
+  copy:       () => <G><rect x="5" y="5" width="12" height="14" rx="1.5"/><rect x="11" y="9" width="12" height="14" rx="1.5"/></G>,
+  tag:        () => <G><path d="M4 4h9l10 10-9 9L4 13z"/><circle cx="9" cy="9" r="1.5"/></G>,
+  summary:    () => <G><path d="M5 7h18M5 14h18M5 21h12"/></G>,
+  diff:       () => <G><path d="M9 4v20M9 8l-4 4M9 8l4 4"/><path d="M19 24V4M19 20l-4-4M19 20l4-4"/></G>,
+  focus:      () => <G><rect x="4" y="4" width="8" height="8"/><rect x="16" y="16" width="8" height="8"/><path d="M13 14h2M13 14v2"/></G>,
+  chart:      () => <G><path d="M4 23h20"/><rect x="6" y="14" width="3" height="7"/><rect x="12" y="9" width="3" height="12"/><rect x="18" y="5" width="3" height="16"/></G>,
+  list:       () => <G><circle cx="5" cy="7" r="1.3" fill="currentColor"/><circle cx="5" cy="14" r="1.3" fill="currentColor"/><circle cx="5" cy="21" r="1.3" fill="currentColor"/><path d="M10 7h14M10 14h14M10 21h10"/></G>,
+  aside:      () => <G><path d="M6 5h16v12h-8l-5 5v-5H6z"/><circle cx="11" cy="11" r="0.8" fill="currentColor"/><circle cx="14" cy="11" r="0.8" fill="currentColor"/><circle cx="17" cy="11" r="0.8" fill="currentColor"/></G>,
+  exit:       () => <G><path d="M12 5H6v18h6"/><path d="M12 14h12M20 10l4 4-4 4"/></G>,
+  folder:     () => <G><path d="M4 8l0 14h20V10H14l-3-2H4z"/><path d="M14 16h6M17 13v6"/></G>,
+
+  model:      () => <G><circle cx="14" cy="14" r="6"/><circle cx="14" cy="14" r="10" strokeDasharray="2 3"/><circle cx="14" cy="14" r="2" fill="currentColor"/></G>,
+  gauge:      () => <G><path d="M5 20a9 9 0 0118 0"/><path d="M14 20l5-7"/><circle cx="14" cy="20" r="1.2" fill="currentColor"/></G>,
+  gear:       () => <G sw={1.4}><circle cx="14" cy="14" r="3.5"/><path d="M14 3v4M14 21v4M3 14h4M21 14h4M6 6l3 3M19 19l3 3M22 6l-3 3M6 22l3-3"/></G>,
+  theme:      () => <G><circle cx="14" cy="14" r="9"/><path d="M14 5a9 9 0 000 18z" fill="currentColor"/></G>,
+  swatch:     () => <G><rect x="4" y="4" width="8" height="8"/><rect x="16" y="4" width="8" height="8" fill="currentColor" opacity="0.3"/><rect x="4" y="16" width="8" height="8" fill="currentColor" opacity="0.6"/><rect x="16" y="16" width="8" height="8"/></G>,
+  statusline: () => <G><rect x="3" y="12" width="22" height="5" rx="1"/><circle cx="7" cy="14.5" r="1" fill="currentColor"/><path d="M11 14.5h10"/></G>,
+  keys:       () => <G><rect x="3" y="9" width="22" height="12" rx="1.5"/><path d="M7 14h.01M11 14h.01M15 14h.01M19 14h.01M7 18h14"/></G>,
+  window:     () => <G><rect x="4" y="5" width="20" height="18" rx="1.5"/><path d="M4 10h20"/><circle cx="7" cy="7.5" r="0.6" fill="currentColor"/><circle cx="9.5" cy="7.5" r="0.6" fill="currentColor"/></G>,
+  bolt:       () => <G><path d="M16 3l-9 14h6l-2 8 9-14h-6z" fill="currentColor" opacity="0.2"/></G>,
+  shield:     () => <G><path d="M14 3l9 3v8c0 6-4 9-9 11-5-2-9-5-9-11V6z"/><path d="M10 14l3 3 5-6"/></G>,
+  lock:       () => <G><rect x="6" y="12" width="16" height="12" rx="1.5"/><path d="M9 12V8a5 5 0 0110 0v4"/></G>,
+  hook:       () => <G><path d="M14 4v10a4 4 0 01-8 0"/><circle cx="14" cy="4" r="1.5" fill="currentColor"/></G>,
+  filter:     () => <G><path d="M4 5h20l-8 10v8l-4-2v-6z"/></G>,
+
+  review:     () => <G><circle cx="12" cy="12" r="7"/><path d="M17 17l6 6"/><path d="M9 12l2 2 4-4"/></G>,
+  ultrareview:() => <G><circle cx="12" cy="12" r="7"/><path d="M17 17l6 6"/><path d="M9 12h6M12 9v6"/></G>,
+  security:   () => <G><path d="M14 3l9 3v8c0 6-4 9-9 11-5-2-9-5-9-11V6z"/><path d="M14 10v4M14 17v.5" stroke="currentColor"/></G>,
+  simplify:   () => <G><path d="M4 8h20M4 14h14M4 20h8"/><path d="M22 18l4-4M22 18l4 4" transform="translate(-4 0)"/></G>,
+  batch:      () => <G><rect x="3" y="3" width="9" height="9"/><rect x="16" y="3" width="9" height="9"/><rect x="3" y="16" width="9" height="9"/><rect x="16" y="16" width="9" height="9" fill="currentColor" opacity="0.25"/></G>,
+  plan:       () => <G><rect x="5" y="4" width="18" height="20" rx="1.5"/><path d="M9 9h10M9 13h10M9 17h6"/></G>,
+  ultraplan:  () => <G><rect x="5" y="4" width="18" height="20" rx="1.5"/><path d="M9 9h10M9 13h10M9 17h6"/><circle cx="20" cy="20" r="3" fill="currentColor" opacity="0.3"/></G>,
+  autofix:    () => <G><path d="M7 21l6-6"/><path d="M11 13l8-8 3 3-8 8z"/><path d="M17 7l3 3"/><path d="M5 23l2-2"/></G>,
+  comments:   () => <G><path d="M5 5h18v12H14l-5 5v-5H5z"/><path d="M10 11h8M10 14h5"/></G>,
+
+  skill:      () => <G><path d="M14 3l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></G>,
+  agent:      () => <G><circle cx="14" cy="10" r="4"/><path d="M5 23c0-5 4-8 9-8s9 3 9 8"/></G>,
+  plug:       () => <G><path d="M10 4v6M18 4v6"/><path d="M7 10h14v5a7 7 0 01-14 0z"/><path d="M14 22v3"/></G>,
+  reload:     () => <G><path d="M22 14a8 8 0 11-2.3-5.6"/><path d="M22 5v5h-5"/></G>,
+  mcp:        () => <G><circle cx="14" cy="14" r="3"/><circle cx="5" cy="6" r="2"/><circle cx="23" cy="6" r="2"/><circle cx="5" cy="22" r="2"/><circle cx="23" cy="22" r="2"/><path d="M12 12l-5-5M16 12l5-5M12 16l-5 5M16 16l5 5"/></G>,
+  spark:      () => <G><path d="M14 4v6M14 18v6M4 14h6M18 14h6M7 7l4 4M17 17l4 4M21 7l-4 4M7 21l4-4"/></G>,
+
+  loop:       () => <G><path d="M6 10a7 7 0 0113-3"/><path d="M22 18a7 7 0 01-13 3"/><path d="M19 4v4h-4M9 24v-4h4"/></G>,
+  calendar:   () => <G><rect x="4" y="6" width="20" height="18" rx="1.5"/><path d="M4 12h20M9 3v5M19 3v5"/><rect x="8" y="15" width="3" height="3" fill="currentColor"/></G>,
+
+  chrome:     () => <G><circle cx="14" cy="14" r="10"/><circle cx="14" cy="14" r="4"/><path d="M14 10h10M8 22l4-7M20 22l-3-6"/></G>,
+  ide:        () => <G><rect x="3" y="5" width="22" height="16" rx="1.5"/><path d="M8 11l-2 3 2 3M14 11l-2 3 2 3M18 11l4 3-4 3"/></G>,
+  github:     () => <G><circle cx="14" cy="14" r="10"/><path d="M11 23v-3c-3 .5-4-1-5-2M17 23v-4c0-1-.3-2-.8-2.5 2.7-.3 5.3-1.5 5.3-5.5 0-1-.5-2-1-2.8.1-.5.5-2-.2-3 0 0-1-.3-3.3 1.3a11 11 0 00-6 0C8.7 4 7.7 4.3 7.7 4.3c-.7 1-.3 2.5-.2 3a4 4 0 00-1 2.8c0 4 2.6 5.2 5.3 5.5-.5.5-.8 1.3-.8 2.5v4"/></G>,
+  slack:      () => <G><rect x="5" y="11" width="3" height="10" rx="1.5"/><rect x="11" y="20" width="10" height="3" rx="1.5"/><rect x="20" y="7" width="3" height="10" rx="1.5"/><rect x="7" y="5" width="10" height="3" rx="1.5"/></G>,
+  api:        () => <G><rect x="3" y="8" width="22" height="12" rx="1.5"/><path d="M8 14h.01M13 14h.01M18 14h.01"/><path d="M3 5l4 3M25 5l-4 3M3 23l4-3M25 23l-4-3"/></G>,
+
+  desktop:    () => <G><rect x="3" y="5" width="22" height="14" rx="1.5"/><path d="M10 23h8M12 19v4M16 19v4"/></G>,
+  mobile:     () => <G><rect x="8" y="3" width="12" height="22" rx="2"/><circle cx="14" cy="21" r="0.8" fill="currentColor"/><path d="M11 6h6"/></G>,
+  remote:     () => <G><circle cx="14" cy="14" r="3"/><path d="M9 19a7 7 0 010-10M19 9a7 7 0 010 10M5 23a11 11 0 010-18M23 5a11 11 0 010 18"/></G>,
+  'cloud-gear':() => <G><path d="M7 18a5 5 0 01-1-10 6 6 0 0112-1 4 4 0 014 4"/><circle cx="19" cy="19" r="3"/><path d="M19 14v2M19 22v2M14 19h2M22 19h2"/></G>,
+  teleport:   () => <G><ellipse cx="14" cy="10" rx="10" ry="3"/><path d="M14 13v12"/><path d="M10 22l4 3 4-3"/></G>,
+  link:       () => <G><path d="M11 9h-3a5 5 0 000 10h3"/><path d="M17 9h3a5 5 0 010 10h-3"/><path d="M10 14h8"/></G>,
+
+  login:      () => <G><path d="M13 5h9v18h-9"/><path d="M15 14H3M7 10l-4 4 4 4"/></G>,
+  logout:     () => <G><path d="M15 5H6v18h9"/><path d="M13 14h12M21 10l4 4-4 4"/></G>,
+  upgrade:    () => <G><path d="M14 22V6M7 13l7-7 7 7"/></G>,
+  fuel:       () => <G><rect x="5" y="5" width="12" height="18" rx="1.5"/><path d="M5 11h12"/><path d="M17 10l4 3v7a2 2 0 01-4 0"/><path d="M21 13v-3l-2-2"/></G>,
+  coin:       () => <G><circle cx="14" cy="14" r="9"/><path d="M14 8v12M11 11h4.5a2 2 0 010 4H11M11 15h4.5a2 2 0 010 4H11"/></G>,
+  meter:      () => <G><path d="M5 20a9 9 0 0118 0"/><path d="M5 20h18"/><path d="M14 20L9 10"/></G>,
+  bars:       () => <G><rect x="5" y="14" width="4" height="9"/><rect x="12" y="9" width="4" height="14"/><rect x="19" y="5" width="4" height="18"/></G>,
+  privacy:    () => <G><circle cx="14" cy="14" r="3"/><path d="M3 14s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><path d="M5 5l18 18"/></G>,
+  gift:       () => <G><rect x="4" y="10" width="20" height="4"/><rect x="6" y="14" width="16" height="10"/><path d="M14 10v14"/><path d="M14 10c-3 0-5-1.5-5-4s3-2 5 0 5-2 5 0-2 4-5 4z"/></G>,
+  status:     () => <G><circle cx="14" cy="14" r="9"/><circle cx="14" cy="14" r="3" fill="currentColor"/></G>,
+
+  voice:      () => <G><rect x="10" y="4" width="8" height="14" rx="3"/><path d="M5 14a9 9 0 0018 0"/><path d="M14 22v3M10 25h8"/></G>,
+  terminal:   () => <G><rect x="3" y="5" width="22" height="18" rx="1.5"/><path d="M7 11l4 3-4 3M14 17h7"/></G>,
+  vim:        () => <G><path d="M4 5l8 18L20 5"/><path d="M20 5h4"/></G>,
+
+  help:       () => <G><circle cx="14" cy="14" r="10"/><path d="M10 11a4 4 0 018 0c0 2-3 2-3 5M14 19h.01"/></G>,
+  doctor:     () => <G><circle cx="14" cy="14" r="10"/><path d="M14 9v10M9 14h10"/></G>,
+  bug:        () => <G><ellipse cx="14" cy="15" rx="6" ry="7"/><path d="M8 15H3M20 15h5M10 9l-3-3M18 9l3-3M14 8V4M9 21l-3 3M19 21l3 3"/></G>,
+  mail:       () => <G><rect x="3" y="7" width="22" height="14" rx="1.5"/><path d="M3 9l11 7 11-7"/></G>,
+  notes:      () => <G><rect x="5" y="4" width="18" height="20" rx="1.5"/><path d="M9 9h10M9 13h10M9 17h6"/><circle cx="20" cy="6" r="2" fill="currentColor"/></G>,
+  disk:       () => <G><rect x="4" y="4" width="20" height="20" rx="1.5"/><rect x="8" y="4" width="12" height="8"/><circle cx="14" cy="18" r="3"/></G>,
+  sticker:    () => <G><path d="M4 4h14l6 6v14H4z"/><path d="M18 4v6h6"/></G>,
+  team:       () => <G><circle cx="9" cy="11" r="3"/><circle cx="19" cy="11" r="3"/><path d="M3 22c0-3 3-5 6-5s6 2 6 5M13 22c0-3 3-5 6-5s6 2 6 5"/></G>,
+  bedrock:    () => <G><path d="M14 4l10 6v8l-10 6-10-6V10z"/><path d="M14 12l10-2M14 12L4 10M14 12v12"/></G>,
+  vertex:     () => <G><path d="M14 3L4 23h20z"/><path d="M14 11v8"/></G>,
+};
+
+/* =======================================================================
+   APP
+   ======================================================================= */
+
+const { useState, useMemo, useEffect, useRef } = React;
+
+function App() {
+  const [selectedCat, setSelectedCat] = useState('all');
+  const [query, setQuery] = useState('');
+  const [active, setActive] = useState(null); // command name
+  const [mode, setMode] = useState('grid');   // grid | list
+  const [hovered, setHovered] = useState(null);
+
+  const byCat = useMemo(() => {
+    const map = {};
+    for (const c of CATEGORIES) map[c.id] = [];
+    for (const cmd of CMDS) if (map[cmd.cat]) map[cmd.cat].push(cmd);
+    return map;
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return CMDS.filter(c => {
+      if (selectedCat !== 'all' && c.cat !== selectedCat) return false;
+      if (!q) return true;
+      return (
+        c.n.toLowerCase().includes(q) ||
+        (c.a||'').toLowerCase().includes(q) ||
+        (c.s||'').toLowerCase().includes(q) ||
+        (c.d||'').toLowerCase().includes(q)
+      );
+    });
+  }, [selectedCat, query]);
+
+  const activeCmd = active ? CMDS.find(c => c.n === active) : null;
+  const hoverCmd = hovered ? CMDS.find(c => c.n === hovered) : null;
+  const previewCmd = hoverCmd || activeCmd;
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') { setActive(null); }
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        document.getElementById('search')?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  return (
+    <div style={{minHeight:'100vh', display:'grid', gridTemplateColumns:'280px 1fr 380px', gap:0}}>
+      <Sidebar categories={CATEGORIES} byCat={byCat} selected={selectedCat} onSelect={setSelectedCat} total={CMDS.length} />
+      <Main
+        cmds={filtered}
+        query={query} onQuery={setQuery}
+        mode={mode} setMode={setMode}
+        active={active} setActive={setActive}
+        setHovered={setHovered}
+        selectedCat={selectedCat}
+      />
+      <Detail cmd={previewCmd} sticky={!!activeCmd} clear={() => setActive(null)} />
+    </div>
+  );
+}
+
+/* --- Sidebar --- */
+function Sidebar({categories, byCat, selected, onSelect, total}) {
+  return (
+    <aside style={{
+      borderRight: '1px solid var(--line)',
+      background: 'var(--paper)',
+      padding: '28px 22px',
+      position: 'sticky', top: 0, height: '100vh',
+      overflowY: 'auto',
+      display: 'flex', flexDirection: 'column', gap: 24,
+    }}>
+      <div>
+        <div className="disp" style={{fontSize: 28, fontWeight: 600, letterSpacing: '-0.02em', lineHeight: 1}}>
+          Command<br/>Atlas
+        </div>
+        <div className="mono" style={{marginTop: 10, fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.08em'}}>
+          {total} commands · {categories.length} families
+        </div>
+      </div>
+
+      <nav style={{display:'flex', flexDirection:'column', gap: 2}}>
+        <CatButton
+          label="All commands"
+          count={total}
+          active={selected==='all'}
+          onClick={() => onSelect('all')}
+          dot="var(--ink)"
+        />
+        <div style={{height: 10}}/>
+        {categories.map(c => (
+          <CatButton
+            key={c.id}
+            label={c.label}
+            hint={c.hint}
+            count={(byCat[c.id]||[]).length}
+            active={selected===c.id}
+            onClick={() => onSelect(c.id)}
+            dot={c.color}
+          />
+        ))}
+      </nav>
+
+      <div style={{marginTop:'auto', fontSize: 11, color: 'var(--ink-3)', lineHeight: 1.6}}>
+        <div className="mono" style={{textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--ink-2)', marginBottom: 8}}>Legend</div>
+        <div style={{display:'flex', alignItems:'center', gap:6}}><span style={{padding:'1px 6px', fontFamily:'IBM Plex Mono', fontSize:10, background:'var(--bg-3)', borderRadius:3}}>skill</span> bundled skill</div>
+        <div style={{display:'flex', alignItems:'center', gap:6, marginTop:4}}><span className="mono" style={{fontSize:10}}>&lt;arg&gt;</span> required</div>
+        <div style={{display:'flex', alignItems:'center', gap:6, marginTop:4}}><span className="mono" style={{fontSize:10}}>[arg]</span> optional</div>
+      </div>
+    </aside>
+  );
+}
+
+function CatButton({label, hint, count, active, onClick, dot}) {
+  return (
+    <button onClick={onClick} style={{
+      textAlign:'left',
+      padding: '9px 10px',
+      borderRadius: 6,
+      background: active ? 'var(--bg-2)' : 'transparent',
+      color: active ? 'var(--ink)' : 'var(--ink-2)',
+      display: 'flex', alignItems:'center', gap: 10,
+      transition:'background 0.12s',
+    }}
+    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-2)'; }}
+    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+    >
+      <span style={{
+        width: 9, height: 9, borderRadius: '50%',
+        background: dot, flex: 'none',
+        boxShadow: active ? `0 0 0 3px color-mix(in oklch, ${dot} 25%, transparent)` : 'none',
+      }}/>
+      <span style={{flex: 1, fontSize: 13, fontWeight: active ? 600 : 500}}>{label}</span>
+      <span className="mono" style={{fontSize: 11, color: 'var(--ink-3)'}}>{count}</span>
+    </button>
+  );
+}
+
+/* --- Main --- */
+function Main({cmds, query, onQuery, mode, setMode, active, setActive, setHovered, selectedCat}) {
+  // Group by category if showing all
+  const grouped = useMemo(() => {
+    if (selectedCat !== 'all') return [{cat: selectedCat, items: cmds}];
+    const byCat = {};
+    for (const c of cmds) { (byCat[c.cat] ||= []).push(c); }
+    return CATEGORIES.filter(c => byCat[c.id]).map(c => ({ cat: c.id, items: byCat[c.id] }));
+  }, [cmds, selectedCat]);
+
+  const catInfo = (id) => CATEGORIES.find(c => c.id === id);
+
+  return (
+    <main style={{padding: '28px 36px 80px', minWidth:0}}>
+      {/* Search bar */}
+      <div style={{
+        display:'flex', alignItems:'center', gap: 10,
+        padding: '12px 14px',
+        border: '1px solid var(--line)', borderRadius: 10,
+        background: 'var(--paper)',
+        marginBottom: 24,
+      }}>
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="var(--ink-3)" strokeWidth="1.6">
+          <circle cx="9" cy="9" r="5.5"/><path d="M13 13l4 4" strokeLinecap="round"/>
+        </svg>
+        <input
+          id="search"
+          placeholder="Search commands  ·  press  /  to focus"
+          value={query}
+          onChange={e => onQuery(e.target.value)}
+          style={{
+            flex: 1, border: 0, outline: 'none', background: 'transparent',
+            fontSize: 14, fontFamily: 'IBM Plex Mono',
+          }}
+        />
+        {query && (
+          <button onClick={() => onQuery('')} className="mono" style={{fontSize: 11, color:'var(--ink-3)'}}>clear</button>
+        )}
+        <div style={{display:'flex', gap: 0, borderLeft:'1px solid var(--line)', paddingLeft: 10, marginLeft: 4}}>
+          <ToggleBtn active={mode==='grid'} onClick={() => setMode('grid')} label="Grid" icon={
+            <svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" fill="none" strokeWidth="1.4"><rect x="1" y="1" width="4" height="4"/><rect x="7" y="1" width="4" height="4"/><rect x="1" y="7" width="4" height="4"/><rect x="7" y="7" width="4" height="4"/></svg>
+          }/>
+          <ToggleBtn active={mode==='list'} onClick={() => setMode('list')} label="List" icon={
+            <svg width="12" height="12" viewBox="0 0 12 12" stroke="currentColor" fill="none" strokeWidth="1.4"><path d="M1 3h10M1 6h10M1 9h10" strokeLinecap="round"/></svg>
+          }/>
+        </div>
+      </div>
+
+      {cmds.length === 0 && (
+        <div style={{padding: 60, textAlign:'center', color:'var(--ink-3)'}}>
+          <div className="disp" style={{fontSize: 24, color:'var(--ink-2)'}}>No commands match "{query}"</div>
+        </div>
+      )}
+
+      {grouped.map(({cat, items}) => {
+        const info = catInfo(cat);
+        return (
+          <section key={cat} style={{marginBottom: 44}}>
+            <header style={{
+              display:'flex', alignItems:'baseline', gap: 14,
+              marginBottom: 14, paddingBottom: 10,
+              borderBottom: '1px solid var(--line)',
+            }}>
+              <span style={{width: 10, height: 10, borderRadius: '50%', background: info.color}}/>
+              <h2 className="disp" style={{fontSize: 22, fontWeight: 600, letterSpacing:'-0.01em', margin: 0}}>{info.label}</h2>
+              <span className="mono" style={{color:'var(--ink-3)', fontSize: 11}}>{info.hint}</span>
+              <span className="mono" style={{marginLeft:'auto', color:'var(--ink-3)', fontSize: 11}}>{items.length}</span>
+            </header>
+            {mode === 'grid' ? (
+              <div style={{
+                display:'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: 10,
+              }}>
+                {items.map(cmd => (
+                  <CmdCard key={cmd.n} cmd={cmd} info={catInfo(cmd.cat)}
+                    active={active===cmd.n}
+                    onClick={() => setActive(active===cmd.n ? null : cmd.n)}
+                    onHover={setHovered}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div style={{display:'flex', flexDirection:'column', border:'1px solid var(--line)', borderRadius: 8, overflow:'hidden', background:'var(--paper)'}}>
+                {items.map((cmd, i) => (
+                  <CmdRow key={cmd.n} cmd={cmd} info={catInfo(cmd.cat)}
+                    last={i===items.length-1}
+                    active={active===cmd.n}
+                    onClick={() => setActive(active===cmd.n ? null : cmd.n)}
+                    onHover={setHovered}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
+
+      <footer style={{marginTop: 60, paddingTop: 20, borderTop:'1px solid var(--line)', color:'var(--ink-3)', fontSize: 12, display:'flex', justifyContent:'space-between'}}>
+        <span className="mono">Type <kbd style={{padding:'1px 5px', background:'var(--bg-3)', borderRadius:3, fontFamily:'IBM Plex Mono', fontSize:10}}>/</kbd> to see every command available in a live session.</span>
+        <span>Click any tile for details</span>
+      </footer>
+    </main>
+  );
+}
+
+function ToggleBtn({active, onClick, label, icon}) {
+  return (
+    <button onClick={onClick} title={label} style={{
+      padding: '5px 9px', borderRadius: 5,
+      background: active ? 'var(--bg-3)' : 'transparent',
+      color: active ? 'var(--ink)' : 'var(--ink-3)',
+      display:'flex', alignItems:'center', gap: 5,
+      fontSize: 11,
+    }}>{icon}</button>
+  );
+}
+
+/* --- Card --- */
+function CmdCard({cmd, info, active, onClick, onHover}) {
+  const Glyph = GLYPHS[cmd.g] || GLYPHS.help;
+  const isSkill = cmd.s?.includes('') || false; // we'll look for skill marker differently; use data
+  const skill = isSkillCmd(cmd.n);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => onHover(cmd.n)}
+      onMouseLeave={() => onHover(null)}
+      style={{
+        textAlign: 'left',
+        padding: '14px 14px 12px',
+        border: '1px solid var(--line)',
+        borderRadius: 8,
+        background: active ? info.color : 'var(--paper)',
+        color: active ? 'white' : 'var(--ink)',
+        display:'flex', flexDirection:'column', gap: 8,
+        transition: 'all 0.15s ease',
+        position:'relative',
+        outline: active ? `1px solid ${info.color}` : 'none',
+        transform: active ? 'translateY(-1px)' : 'none',
+        boxShadow: active ? '0 10px 24px -12px rgba(0,0,0,0.25)' : 'none',
+      }}
+      onMouseDown={e => e.currentTarget.style.transform = 'translateY(0)'}
+    >
+      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap: 8}}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 6,
+          background: active ? 'rgba(255,255,255,0.15)' : `color-mix(in oklch, ${info.color} 10%, var(--bg-2))`,
+          color: active ? 'white' : info.color,
+          display:'grid', placeItems:'center',
+          flex:'none',
+        }}>
+          <Glyph/>
+        </div>
+        {skill && (
+          <span style={{
+            fontSize: 9, fontFamily:'IBM Plex Mono',
+            textTransform:'uppercase', letterSpacing:'0.1em',
+            padding: '2px 5px', borderRadius: 3,
+            background: active ? 'rgba(255,255,255,0.18)' : 'var(--bg-3)',
+            color: active ? 'white' : 'var(--ink-2)',
+          }}>skill</span>
+        )}
+      </div>
+      <div>
+        <div className="mono" style={{fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em'}}>
+          /{cmd.n}
+          {cmd.arg && <span style={{opacity: 0.55, fontWeight: 400, marginLeft: 4}}>{cmd.arg}</span>}
+        </div>
+        <div style={{fontSize: 12, color: active ? 'rgba(255,255,255,0.85)' : 'var(--ink-2)', marginTop: 4, lineHeight: 1.45}}>
+          {cmd.s}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function CmdRow({cmd, info, last, active, onClick, onHover}) {
+  const Glyph = GLYPHS[cmd.g] || GLYPHS.help;
+  const skill = isSkillCmd(cmd.n);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => onHover(cmd.n)}
+      onMouseLeave={() => onHover(null)}
+      style={{
+        display:'grid',
+        gridTemplateColumns: '36px 180px 1fr 60px',
+        gap: 14,
+        alignItems:'center',
+        padding: '10px 14px',
+        borderBottom: last ? 'none' : '1px solid var(--line)',
+        textAlign:'left',
+        background: active ? 'var(--bg-2)' : 'transparent',
+        color: 'var(--ink)',
+        transition: 'background 0.1s',
+      }}
+    >
+      <div style={{
+        width: 32, height: 32, borderRadius: 5,
+        background: `color-mix(in oklch, ${info.color} 10%, var(--bg-2))`,
+        color: info.color,
+        display:'grid', placeItems:'center',
+      }}><Glyph/></div>
+      <div className="mono" style={{fontSize: 13, fontWeight: 600}}>
+        /{cmd.n}
+        {cmd.arg && <span style={{opacity: 0.5, fontWeight: 400, marginLeft: 4}}>{cmd.arg}</span>}
+      </div>
+      <div style={{fontSize: 13, color: 'var(--ink-2)'}}>{cmd.s}</div>
+      <div style={{display:'flex', justifyContent:'flex-end', gap: 6}}>
+        {skill && <span style={{fontSize: 9, fontFamily:'IBM Plex Mono', textTransform:'uppercase', letterSpacing:'0.1em', padding: '2px 5px', borderRadius: 3, background: 'var(--bg-3)', color:'var(--ink-2)'}}>skill</span>}
+      </div>
+    </button>
+  );
+}
+
+/* Known skills list */
+const SKILLS = new Set(['batch','claude-api','debug','fewer-permission-prompts','loop','simplify']);
+function isSkillCmd(n) { return SKILLS.has(n); }
+
+/* --- Detail pane --- */
+function Detail({cmd, sticky, clear}) {
+  if (!cmd) {
+    return (
+      <aside style={{
+        borderLeft:'1px solid var(--line)',
+        background:'var(--paper)',
+        padding: 28,
+        position:'sticky', top: 0, height:'100vh',
+        overflowY:'auto',
+        display:'flex', flexDirection:'column', gap: 18,
+      }}>
+        <div className="mono" style={{fontSize: 11, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--ink-3)'}}>Detail</div>
+        <div style={{flex: 1, display:'grid', placeItems:'center', color:'var(--ink-3)', textAlign:'center', padding: 32, border: '1px dashed var(--line)', borderRadius: 8}}>
+          <div>
+            <div className="disp" style={{fontSize: 28, color:'var(--ink-2)', lineHeight: 1.1}}>Hover or<br/>click a tile</div>
+            <div className="mono" style={{fontSize: 11, color:'var(--ink-3)', marginTop: 12, letterSpacing:'0.05em'}}>to see details here</div>
+          </div>
+        </div>
+        <GlossaryTeaser/>
+      </aside>
+    );
+  }
+  const info = CATEGORIES.find(c => c.id === cmd.cat);
+  const Glyph = GLYPHS[cmd.g] || GLYPHS.help;
+  const skill = isSkillCmd(cmd.n);
+
+  return (
+    <aside style={{
+      borderLeft:'1px solid var(--line)',
+      background:'var(--paper)',
+      padding: 28,
+      position:'sticky', top: 0, height:'100vh',
+      overflowY:'auto',
+      display:'flex', flexDirection:'column', gap: 18,
+    }}>
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+        <div style={{display:'flex', alignItems:'center', gap: 8}}>
+          <span style={{width:8, height:8, borderRadius:'50%', background: info.color}}/>
+          <span className="mono" style={{fontSize: 11, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--ink-2)'}}>{info.label}</span>
+        </div>
+        {sticky && (
+          <button onClick={clear} className="mono" style={{fontSize: 11, color:'var(--ink-3)'}}>unpin ×</button>
+        )}
+      </div>
+
+      <div style={{
+        width: 96, height: 96, borderRadius: 12,
+        background: `color-mix(in oklch, ${info.color} 12%, var(--bg-2))`,
+        color: info.color,
+        display:'grid', placeItems:'center',
+      }}>
+        <div style={{transform:'scale(2.4)'}}><Glyph/></div>
+      </div>
+
+      <div>
+        <div className="mono" style={{fontSize: 22, fontWeight: 600, letterSpacing:'-0.02em'}}>
+          /{cmd.n}
+          {cmd.arg && <span style={{opacity: 0.5, fontWeight: 400, marginLeft: 6}}>{cmd.arg}</span>}
+        </div>
+        {cmd.a && (
+          <div className="mono" style={{fontSize: 12, color:'var(--ink-3)', marginTop: 4}}>
+            alias: {cmd.a}
+          </div>
+        )}
+        {skill && (
+          <span style={{
+            display:'inline-block', marginTop: 8,
+            fontSize: 10, fontFamily:'IBM Plex Mono',
+            textTransform:'uppercase', letterSpacing:'0.12em',
+            padding: '3px 7px', borderRadius: 4,
+            background: 'var(--bg-3)', color:'var(--ink-2)',
+          }}>bundled skill</span>
+        )}
+      </div>
+
+      <div style={{fontSize: 15, lineHeight: 1.5, color:'var(--ink)'}}>{cmd.s}</div>
+      {cmd.d && <div style={{fontSize: 13, lineHeight: 1.6, color:'var(--ink-2)'}}>{cmd.d}</div>}
+
+      <div style={{marginTop:'auto', paddingTop: 16, borderTop:'1px dashed var(--line)', fontSize: 11, color:'var(--ink-3)', display:'flex', flexDirection:'column', gap:6}}>
+        <div className="mono" style={{textTransform:'uppercase', letterSpacing:'0.08em'}}>Syntax</div>
+        <code className="mono" style={{fontSize: 12, background:'var(--bg-3)', padding: '8px 10px', borderRadius: 4, color:'var(--ink)'}}>
+          /{cmd.n}{cmd.arg ? ' ' + cmd.arg : ''}
+        </code>
+      </div>
+    </aside>
+  );
+}
+
+function GlossaryTeaser() {
+  return (
+    <div style={{marginTop:'auto', fontSize: 12, color:'var(--ink-3)', lineHeight: 1.6}}>
+      <div className="mono" style={{textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--ink-2)', marginBottom: 6}}>About</div>
+      Commands control the CLI from inside a session — a quick way to switch models, manage permissions, clear context, run a workflow, and more. Not every command appears for every user; availability depends on platform, plan, and environment.
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
