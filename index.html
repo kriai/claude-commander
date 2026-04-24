@@ -84,14 +84,14 @@ const CATEGORIES = [
 // glyph ids map to small SVG functions defined below
 const CMDS = [
   // Session
-  { n: 'clear', a: '/reset · /new', cat: 'session', g: 'erase', s: 'Start a new conversation with empty context.', d: 'Previous conversation stays available in /resume. To free up context while continuing, use /compact instead.' },
-  { n: 'compact', arg: '[instructions]', cat: 'context', g: 'compress', s: 'Summarize the conversation so far to free context.', d: 'Optionally pass focus instructions for the summary.' },
+  { n: 'clear', a: '/reset · /new', cat: 'session', g: 'erase', s: 'Start a new conversation with empty context.', d: 'Previous conversation stays available in /resume. To free up context while continuing, use /compact instead.', related: [{name:'compact',reason:'Use /compact when you want to free context but keep the session going.'},{name:'resume',reason:'Use /resume to return to a prior session rather than erasing the current one.'}] },
+  { n: 'compact', arg: '[instructions]', cat: 'context', g: 'compress', s: 'Summarize the conversation so far to free context.', d: 'Optionally pass focus instructions for the summary.', related: [{name:'clear',reason:'Use /clear when you want to wipe context entirely, not summarize it.'},{name:'resume',reason:'Use /resume to pick up a previous session instead of compacting this one.'}] },
   { n: 'context', cat: 'context', g: 'grid', s: 'Visualize current context usage as a colored grid.', d: 'Shows optimization suggestions for context-heavy tools, memory bloat, and capacity warnings.' },
   { n: 'memory', cat: 'context', g: 'book', s: 'Edit CLAUDE.md memory files and auto-memory.', d: 'Enable or disable auto-memory and view auto-memory entries.' },
   { n: 'init', cat: 'context', g: 'seed', s: 'Initialize project with a CLAUDE.md guide.', d: 'Set CLAUDE_CODE_NEW_INIT=1 for an interactive flow through skills, hooks, and personal memory files.' },
 
   { n: 'branch', a: '/fork', arg: '[name]', cat: 'session', g: 'branch', s: 'Fork the current conversation at this point.', d: 'Preserves the original — return via /resume.' },
-  { n: 'resume', a: '/continue', arg: '[session]', cat: 'session', g: 'resume', s: 'Resume a conversation by ID or name.', d: 'Or open the session picker.' },
+  { n: 'resume', a: '/continue', arg: '[session]', cat: 'session', g: 'resume', s: 'Resume a conversation by ID or name.', d: 'Or open the session picker.', related: [{name:'compact',reason:'Use /compact to stay in this session but summarize and free context.'},{name:'clear',reason:'Use /clear when you want a clean slate rather than continuing a prior session.'},{name:'branch',reason:'Use /branch to fork the current session before switching to a new one.'}] },
   { n: 'rewind', a: '/checkpoint · /undo', cat: 'session', g: 'rewind', s: 'Rewind conversation or code to a prior point.', d: 'Also lets you summarize from a selected message.' },
   { n: 'export', arg: '[filename]', cat: 'session', g: 'out', s: 'Export the current conversation as plain text.', d: 'With a filename writes directly; without, opens a dialog.' },
   { n: 'copy', arg: '[N]', cat: 'session', g: 'copy', s: 'Copy the last assistant response to clipboard.', d: 'Pass N to copy the Nth-latest. Press w in the picker to write to a file instead.' },
@@ -106,15 +106,15 @@ const CMDS = [
   { n: 'add-dir', arg: '<path>', cat: 'session', g: 'folder', s: 'Add a working directory for the current session.', d: 'Most .claude/ config is not discovered from the added directory.' },
 
   // Config
-  { n: 'model', arg: '[model]', cat: 'config', g: 'model', s: 'Select or change the AI model.', d: 'Left/right to adjust effort level where supported. No arg opens a picker.' },
-  { n: 'effort', arg: '[level|auto]', cat: 'config', g: 'gauge', s: 'Set the model effort level.', d: 'low, medium, high, xhigh, or max. auto resets to default. Applies immediately.' },
+  { n: 'model', arg: '[model]', cat: 'config', g: 'model', s: 'Select or change the AI model.', d: 'Left/right to adjust effort level where supported. No arg opens a picker.', related: [{name:'effort',reason:'Use /effort when the model is set but you want to tune its reasoning depth.'},{name:'fast',reason:'Use /fast for a quick toggle between fast output and full reasoning.'},{name:'config',reason:'Use /config to adjust model along with other preferences in a settings UI.'}] },
+  { n: 'effort', arg: '[level|auto]', cat: 'config', g: 'gauge', s: 'Set the model effort level.', d: 'low, medium, high, xhigh, or max. auto resets to default. Applies immediately.', related: [{name:'model',reason:'Use /model when you want to switch the underlying model, not just effort.'},{name:'fast',reason:'Use /fast for a binary toggle instead of choosing a specific effort level.'}] },
   { n: 'config', a: '/settings', cat: 'config', g: 'gear', s: 'Open Settings to adjust theme, model, output style.', d: '' },
   { n: 'theme', cat: 'config', g: 'theme', s: 'Change the color theme.', d: 'Includes auto (follows terminal), light/dark, daltonized, and ANSI themes.' },
   { n: 'color', arg: '[color|default]', cat: 'config', g: 'swatch', s: 'Set the prompt bar color for this session.', d: 'red, blue, green, yellow, purple, orange, pink, cyan — or default.' },
   { n: 'statusline', cat: 'config', g: 'statusline', s: 'Configure the status line.', d: 'Describe what you want, or run without arguments to auto-configure from your shell prompt.' },
   { n: 'keybindings', cat: 'config', g: 'keys', s: 'Open or create your keybindings file.', d: '' },
   { n: 'tui', arg: '[default|fullscreen]', cat: 'config', g: 'window', s: 'Set terminal UI renderer.', d: 'fullscreen enables the flicker-free alt-screen renderer.' },
-  { n: 'fast', arg: '[on|off]', cat: 'config', g: 'bolt', s: 'Toggle fast mode.', d: '' },
+  { n: 'fast', arg: '[on|off]', cat: 'config', g: 'bolt', s: 'Toggle fast mode.', d: '', related: [{name:'model',reason:'Use /model when you want to switch models, not just toggle fast output.'},{name:'effort',reason:'Use /effort for fine-grained control over reasoning depth beyond on/off.'}] },
   { n: 'sandbox', cat: 'config', g: 'shield', s: 'Toggle sandbox mode.', d: 'Available on supported platforms only.' },
   { n: 'permissions', a: '/allowed-tools', cat: 'config', g: 'lock', s: 'Manage allow, ask, and deny rules for tools.', d: 'Interactive dialog to view rules by scope, add/remove, and review auto denials.' },
   { n: 'hooks', cat: 'skills', g: 'hook', s: 'View hook configurations for tool events.', d: '' },
@@ -645,6 +645,7 @@ function App() {
           clear={() => setActive(null)}
           favs={favs} toggleFav={toggleFav}
           mobile={mobile}
+          onSelect={setActive}
         />
       )}
     </div>
@@ -1110,8 +1111,58 @@ function CmdRow({cmd, info, last, active, focused, favorited, onToggleFav, onCli
 const SKILLS = new Set(['batch','claude-api','debug','fewer-permission-prompts','loop','simplify']);
 function isSkillCmd(n) { return SKILLS.has(n); }
 
+function RelatedSection({ related, onSelect, mobile }) {
+  if (!related || related.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="mono" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-3)', marginBottom: 2 }}>Related commands</div>
+      {related.map(({ name, reason }) => {
+        const target = CMDS.find(c => c.n === name);
+        const inner = mobile ? (
+          <>
+            <span className="mono" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>/{name}</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-3)', lineHeight: 1.4, marginTop: 2 }}>{reason}</span>
+          </>
+        ) : (
+          <>
+            <span className="mono" style={{ fontSize: 12, fontWeight: 600, minWidth: 140, flexShrink: 0, color: 'var(--ink)' }}>/{name}</span>
+            <span style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.4 }}>{reason}</span>
+          </>
+        );
+        const rowStyle = {
+          display: 'flex', flexDirection: mobile ? 'column' : 'row',
+          alignItems: mobile ? 'flex-start' : 'baseline',
+          gap: mobile ? 2 : 12,
+          padding: '8px 10px', borderRadius: 6,
+          border: '1px solid var(--line)',
+          textAlign: 'left', width: '100%',
+          transition: 'background 0.1s',
+        };
+        if (target) {
+          return (
+            <button
+              key={name}
+              onClick={() => onSelect(name)}
+              style={{ ...rowStyle, background: 'transparent', color: 'var(--ink)', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {inner}
+            </button>
+          );
+        }
+        return (
+          <div key={name} style={{ ...rowStyle, background: 'transparent' }}>
+            {inner}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* --- Detail pane --- */
-function Detail({cmd, sticky, clear, favs, toggleFav, mobile}) {
+function Detail({cmd, sticky, clear, favs, toggleFav, mobile, onSelect}) {
   const asideBase = mobile ? {
     position: 'fixed',
     left: 0, right: 0, bottom: 0,
@@ -1216,6 +1267,8 @@ function Detail({cmd, sticky, clear, favs, toggleFav, mobile}) {
 
       <div style={{fontSize: 15, lineHeight: 1.5, color:'var(--ink)'}}>{cmd.s}</div>
       {cmd.d && <div style={{fontSize: 13, lineHeight: 1.6, color:'var(--ink-2)'}}>{cmd.d}</div>}
+
+      <RelatedSection related={cmd.related} onSelect={onSelect} mobile={mobile}/>
 
       <div style={{marginTop: mobile ? 0 : 'auto', paddingTop: 16, borderTop:'1px dashed var(--line)', fontSize: 11, color:'var(--ink-3)', display:'flex', flexDirection:'column', gap:6}}>
         <div className="mono" style={{textTransform:'uppercase', letterSpacing:'0.08em'}}>Syntax</div>
