@@ -128,7 +128,7 @@ const CMDS = [
   { n: 'plan', arg: '[description]', cat: 'review', g: 'plan', s: 'Enter plan mode from the prompt.', d: 'Pass a description to enter plan mode and start immediately.' },
   { n: 'ultraplan', arg: '<prompt>', cat: 'review', g: 'ultraplan', s: 'Draft a plan remotely, review in browser, execute.', d: '' },
   { n: 'autofix-pr', arg: '[prompt]', cat: 'review', g: 'autofix', s: 'Spawn a remote session that fixes PR CI failures and comments.', d: 'Detects the open PR from your branch with gh pr view.' },
-  { n: 'pr-comments', arg: '[PR]', cat: 'review', g: 'comments', s: 'Fetch PR comments.', d: 'Removed in v2.1.91. Ask Claude directly to view pull request comments instead.' },
+  { n: 'pr-comments', arg: '[PR]', cat: 'review', g: 'comments', removed: { in: '2.1.91', replacement: null }, s: 'Fetch and display pull request comments.', d: 'Ask Claude directly to view pull request comments instead.' },
 
   // Skills & Agents
   { n: 'skills', cat: 'skills', g: 'skill', s: 'List available skills.', d: 'Press t to sort by token count.' },
@@ -163,9 +163,9 @@ const CMDS = [
   { n: 'logout', cat: 'account', g: 'logout', s: 'Sign out.', d: '' },
   { n: 'upgrade', cat: 'account', g: 'upgrade', s: 'Open the upgrade page.', d: 'Switch to a higher plan tier.' },
   { n: 'extra-usage', cat: 'account', g: 'fuel', s: 'Configure extra usage past rate limits.', d: '' },
-  { n: 'cost', cat: 'account', g: 'coin', s: 'Show token usage statistics.', d: '' },
-  { n: 'usage', cat: 'account', g: 'meter', s: 'Show plan usage limits and rate limits.', d: '' },
-  { n: 'stats', cat: 'account', g: 'bars', s: 'Visualize daily usage, history, streaks.', d: '' },
+  { n: 'cost', alias_of: 'usage', cat: 'account' },
+  { n: 'usage', cat: 'account', g: 'meter', s: 'Show session cost, plan usage limits, rate limits, and activity stats.', d: 'Also aliased as /cost (cost view) and /stats (stats tab).' },
+  { n: 'stats', alias_of: 'usage', cat: 'account' },
   { n: 'privacy-settings', cat: 'account', g: 'privacy', s: 'View and update your privacy settings.', d: 'Only for Pro and Max.' },
   { n: 'passes', cat: 'account', g: 'gift', s: 'Share a free week with friends.', d: 'Only visible if your account is eligible.' },
   { n: 'status', cat: 'support', g: 'status', s: 'Open Settings (Status tab).', d: 'Shows version, model, account, connectivity.' },
@@ -173,7 +173,7 @@ const CMDS = [
   // Input
   { n: 'voice', cat: 'input', g: 'voice', s: 'Toggle push-to-talk voice dictation.', d: 'Requires a Claude.ai account.' },
   { n: 'terminal-setup', cat: 'input', g: 'terminal', s: 'Configure terminal keybindings.', d: 'Shift+Enter and other shortcuts. Visible only in terminals that need it.' },
-  { n: 'vim', cat: 'input', g: 'vim', s: 'Removed. Toggle via /config \u2192 Editor mode.', d: 'Removed in v2.1.92.' },
+  { n: 'vim', cat: 'input', g: 'vim', removed: { in: '2.1.92', replacement: 'config' }, s: 'Toggle between Vim and Normal editing modes.', d: 'Use /config \u2192 Editor mode to change this setting.' },
 
   // Support
   { n: 'help', cat: 'support', g: 'help', s: 'Show help and available commands.', d: '' },
@@ -186,6 +186,26 @@ const CMDS = [
   { n: 'team-onboarding', cat: 'support', g: 'team', s: 'Generate a team onboarding guide.', d: 'Analyzes last 30 days of sessions and produces a paste-ready markdown guide.' },
   { n: 'setup-bedrock', cat: 'integ', g: 'bedrock', s: 'Configure Amazon Bedrock.', d: 'Only visible when CLAUDE_CODE_USE_BEDROCK=1.' },
   { n: 'setup-vertex', cat: 'integ', g: 'vertex', s: 'Configure Google Vertex AI.', d: 'Only visible when CLAUDE_CODE_USE_VERTEX=1.' },
+
+  // Aliases
+  { n: 'fork',         alias_of: 'branch',         cat: 'session'  },
+  { n: 'continue',     alias_of: 'resume',          cat: 'session'  },
+  { n: 'checkpoint',   alias_of: 'rewind',          cat: 'session'  },
+  { n: 'undo',         alias_of: 'rewind',          cat: 'session'  },
+  { n: 'quit',         alias_of: 'exit',            cat: 'session'  },
+  { n: 'new',          alias_of: 'clear',           cat: 'session'  },
+  { n: 'reset',        alias_of: 'clear',           cat: 'session'  },
+  { n: 'bashes',       alias_of: 'tasks',           cat: 'session'  },
+  { n: 'settings',     alias_of: 'config',          cat: 'config'   },
+  { n: 'allowed-tools',alias_of: 'permissions',     cat: 'config'   },
+  { n: 'proactive',    alias_of: 'loop',            cat: 'schedule' },
+  { n: 'routines',     alias_of: 'schedule',        cat: 'schedule' },
+  { n: 'app',          alias_of: 'desktop',         cat: 'remote'   },
+  { n: 'ios',          alias_of: 'mobile',          cat: 'remote'   },
+  { n: 'android',      alias_of: 'mobile',          cat: 'remote'   },
+  { n: 'rc',           alias_of: 'remote-control',  cat: 'remote'   },
+  { n: 'tp',           alias_of: 'teleport',        cat: 'remote'   },
+  { n: 'bug',          alias_of: 'feedback',        cat: 'support'  },
 ];
 
 /* =======================================================================
@@ -292,6 +312,7 @@ const GLYPHS = {
   team:       () => <G><circle cx="9" cy="11" r="3"/><circle cx="19" cy="11" r="3"/><path d="M3 22c0-3 3-5 6-5s6 2 6 5M13 22c0-3 3-5 6-5s6 2 6 5"/></G>,
   bedrock:    () => <G><path d="M14 4l10 6v8l-10 6-10-6V10z"/><path d="M14 12l10-2M14 12L4 10M14 12v12"/></G>,
   vertex:     () => <G><path d="M14 3L4 23h20z"/><path d="M14 11v8"/></G>,
+  alias:      () => <G><path d="M6 14h12M14 9l5 5-5 5"/><path d="M6 9v-1a2 2 0 012-2h8"/></G>,
 };
 
 /* =======================================================================
@@ -333,12 +354,12 @@ function useWindowWidth() {
   return w;
 }
 
-const VERSION_RE = /(Removed|New|Added)\s+in\s+v(\d+(?:\.\d+)*)/i;
+const VERSION_RE = /(New|Added)\s+in\s+v(\d+(?:\.\d+)*)/i;
 const VERSION_META = Object.fromEntries(CMDS.map(c => {
+  if (c.removed) return [c.n, { kind: 'removed', version: c.removed.in }];
   const m = VERSION_RE.exec((c.d || '') + ' ' + (c.s || ''));
   if (!m) return [c.n, null];
-  const kind = m[1].toLowerCase() === 'removed' ? 'removed' : 'new';
-  return [c.n, { kind, version: m[2] }];
+  return [c.n, { kind: 'new', version: m[2] }];
 }));
 
 function fuzzyScore(q, cmd) {
@@ -429,6 +450,18 @@ function VersionPill({ meta, inverted }) {
     }}>
       {meta.kind} v{meta.version}
     </span>
+  );
+}
+
+function AliasPill({ inverted }) {
+  return (
+    <span className="mono" style={{
+      fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.1em',
+      padding: '2px 5px', borderRadius: 3,
+      background: inverted ? 'rgba(255,255,255,0.18)' : 'var(--bg-3)',
+      color: inverted ? 'rgba(255,255,255,0.85)' : 'var(--ink-2)',
+      whiteSpace: 'nowrap',
+    }}>alias</span>
   );
 }
 
@@ -724,6 +757,7 @@ function Sidebar({categories, byCat, selected, onSelect, total, favsCount, theme
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
         <div className="mono" style={{textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--ink-2)', margin: '16px 0 8px'}}>Legend</div>
         <div style={{display:'flex', alignItems:'center', gap:6}}><span style={{padding:'1px 6px', fontFamily:'IBM Plex Mono', fontSize:10, background:'var(--bg-3)', borderRadius:3}}>skill</span> bundled skill</div>
+        <div style={{display:'flex', alignItems:'center', gap:6, marginTop:4}}><span style={{padding:'1px 6px', fontFamily:'IBM Plex Mono', fontSize:10, background:'var(--bg-3)', color:'var(--ink-2)', borderRadius:3}}>alias</span> alias entry</div>
         <div style={{display:'flex', alignItems:'center', gap:6, marginTop:4}}><span className="mono" style={{fontSize:10}}>&lt;arg&gt;</span> required</div>
         <div style={{display:'flex', alignItems:'center', gap:6, marginTop:4}}><span className="mono" style={{fontSize:10}}>[arg]</span> optional</div>
         <div style={{marginTop: 10, fontSize: 10, color: 'var(--ink-3)'}}>
@@ -937,8 +971,13 @@ function ToggleBtn({active, onClick, label, icon}) {
 
 /* --- Card --- */
 function CmdCard({cmd, info, active, focused, favorited, onToggleFav, onClick, onHover, mobile}) {
-  const Glyph = GLYPHS[cmd.g] || GLYPHS.help;
-  const skill = isSkillCmd(cmd.n);
+  const isAlias = !!cmd.alias_of;
+  const isRemoved = !!cmd.removed;
+  const parentCmd = isAlias ? CMDS.find(c => c.n === cmd.alias_of) : null;
+  const Glyph = isAlias
+    ? (parentCmd ? (GLYPHS[parentCmd.g] || GLYPHS.alias) : GLYPHS.alias)
+    : (GLYPHS[cmd.g] || GLYPHS.help);
+  const skill = !isAlias && isSkillCmd(cmd.n);
   const version = VERSION_META[cmd.n];
   const btnRef = useRef(null);
   useEffect(() => {
@@ -955,6 +994,7 @@ function CmdCard({cmd, info, active, focused, favorited, onToggleFav, onClick, o
       color: active ? 'white' : 'var(--ink-2)',
     }}>skill</span>
   );
+  const cardOpacity = !active && (isRemoved ? 0.55 : isAlias ? 0.72 : 1);
   const shared = {
     ref: btnRef,
     onClick,
@@ -975,6 +1015,7 @@ function CmdCard({cmd, info, active, focused, favorited, onToggleFav, onClick, o
         alignItems: 'center',
         transition: 'background 0.15s',
         outline: 'none',
+        opacity: cardOpacity || 1,
         boxShadow: focused ? '0 0 0 2px var(--accent)' : 'none',
       }}>
         <div style={{
@@ -987,20 +1028,19 @@ function CmdCard({cmd, info, active, focused, favorited, onToggleFav, onClick, o
         </div>
         <div style={{minWidth: 0}}>
           <div style={{display:'flex', alignItems:'center', gap: 6, flexWrap:'wrap'}}>
-            <span className="mono" style={{fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em'}}>
+            <span className="mono" style={{fontSize: 14, fontWeight: isAlias ? 400 : 600, letterSpacing: '-0.01em', color: active ? 'white' : (isAlias ? 'var(--ink-2)' : 'var(--ink)')}}>
               /{cmd.n}
-              {cmd.arg && <span style={{opacity: 0.55, fontWeight: 400, marginLeft: 4}}>{cmd.arg}</span>}
+              {!isAlias && cmd.arg && <span style={{opacity: 0.55, fontWeight: 400, marginLeft: 4}}>{cmd.arg}</span>}
             </span>
             {version && <VersionPill meta={version} inverted={active}/>}
-            {skillBadge}
+            {isAlias ? <AliasPill inverted={active}/> : skillBadge}
           </div>
           <div style={{
             fontSize: 12.5,
-            color: active ? 'rgba(255,255,255,0.85)' : 'var(--ink-2)',
+            color: active ? 'rgba(255,255,255,0.85)' : 'var(--ink-3)',
             marginTop: 3, lineHeight: 1.4,
-            overflow: 'hidden',
           }}>
-            {cmd.s}
+            {isAlias ? `→ /${cmd.alias_of}` : cmd.s}
           </div>
         </div>
         <StarButton active={favorited} onClick={onToggleFav} inverted={active}/>
@@ -1019,6 +1059,7 @@ function CmdCard({cmd, info, active, focused, favorited, onToggleFav, onClick, o
       transition: 'all 0.15s ease',
       position:'relative',
       outline: 'none',
+      opacity: cardOpacity || 1,
       boxShadow: focused
         ? (active ? '0 10px 24px -12px rgba(0,0,0,0.25), 0 0 0 2px var(--accent)' : '0 0 0 2px var(--accent)')
         : (active ? '0 10px 24px -12px rgba(0,0,0,0.25)' : 'none'),
@@ -1036,18 +1077,18 @@ function CmdCard({cmd, info, active, focused, favorited, onToggleFav, onClick, o
         </div>
         <div style={{display:'flex', alignItems:'center', gap: 4, flexWrap:'wrap', justifyContent:'flex-end'}}>
           {version && <VersionPill meta={version} inverted={active}/>}
-          {skillBadge}
+          {isAlias ? <AliasPill inverted={active}/> : skillBadge}
           <StarButton active={favorited} onClick={onToggleFav} inverted={active}/>
-          <CopyButton name={cmd.n} inverted={active}/>
+          {!isAlias && <CopyButton name={cmd.n} inverted={active}/>}
         </div>
       </div>
       <div>
-        <div className="mono" style={{fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em'}}>
+        <div className="mono" style={{fontSize: 13, fontWeight: isAlias ? 400 : 600, letterSpacing: '-0.01em', color: active ? 'white' : (isAlias ? 'var(--ink-2)' : 'var(--ink)')}}>
           /{cmd.n}
-          {cmd.arg && <span style={{opacity: 0.55, fontWeight: 400, marginLeft: 4}}>{cmd.arg}</span>}
+          {!isAlias && cmd.arg && <span style={{opacity: 0.55, fontWeight: 400, marginLeft: 4}}>{cmd.arg}</span>}
         </div>
-        <div style={{fontSize: 12, color: active ? 'rgba(255,255,255,0.85)' : 'var(--ink-2)', marginTop: 4, lineHeight: 1.45}}>
-          {cmd.s}
+        <div style={{fontSize: 12, color: active ? 'rgba(255,255,255,0.75)' : 'var(--ink-3)', marginTop: 4, lineHeight: 1.45}}>
+          {isAlias ? `→ /${cmd.alias_of}` : cmd.s}
         </div>
       </div>
     </button>
@@ -1055,8 +1096,13 @@ function CmdCard({cmd, info, active, focused, favorited, onToggleFav, onClick, o
 }
 
 function CmdRow({cmd, info, last, active, focused, favorited, onToggleFav, onClick, onHover}) {
-  const Glyph = GLYPHS[cmd.g] || GLYPHS.help;
-  const skill = isSkillCmd(cmd.n);
+  const isAlias = !!cmd.alias_of;
+  const isRemoved = !!cmd.removed;
+  const parentCmd = isAlias ? CMDS.find(c => c.n === cmd.alias_of) : null;
+  const Glyph = isAlias
+    ? (parentCmd ? (GLYPHS[parentCmd.g] || GLYPHS.alias) : GLYPHS.alias)
+    : (GLYPHS[cmd.g] || GLYPHS.help);
+  const skill = !isAlias && isSkillCmd(cmd.n);
   const version = VERSION_META[cmd.n];
   const btnRef = useRef(null);
   useEffect(() => {
@@ -1064,6 +1110,7 @@ function CmdRow({cmd, info, last, active, focused, favorited, onToggleFav, onCli
       btnRef.current.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
   }, [focused]);
+  const rowOpacity = !active && (isRemoved ? 0.55 : isAlias ? 0.72 : 1);
   return (
     <button
       ref={btnRef}
@@ -1081,6 +1128,7 @@ function CmdRow({cmd, info, last, active, focused, favorited, onToggleFav, onCli
         background: active ? 'var(--bg-2)' : 'transparent',
         color: 'var(--ink)',
         transition: 'background 0.1s',
+        opacity: rowOpacity || 1,
         outline: focused ? '2px solid var(--accent)' : 'none',
         outlineOffset: -2,
         position: 'relative',
@@ -1092,16 +1140,21 @@ function CmdRow({cmd, info, last, active, focused, favorited, onToggleFav, onCli
         color: info.color,
         display:'grid', placeItems:'center',
       }}><Glyph/></div>
-      <div className="mono" style={{fontSize: 13, fontWeight: 600}}>
+      <div className="mono" style={{fontSize: 13, fontWeight: isAlias ? 400 : 600, color: isAlias ? 'var(--ink-2)' : 'var(--ink)'}}>
         /{cmd.n}
-        {cmd.arg && <span style={{opacity: 0.5, fontWeight: 400, marginLeft: 4}}>{cmd.arg}</span>}
+        {!isAlias && cmd.arg && <span style={{opacity: 0.5, fontWeight: 400, marginLeft: 4}}>{cmd.arg}</span>}
       </div>
-      <div style={{fontSize: 13, color: 'var(--ink-2)'}}>{cmd.s}</div>
+      <div style={{fontSize: 13, color: 'var(--ink-3)'}}>
+        {isAlias ? `→ /${cmd.alias_of}` : cmd.s}
+      </div>
       <div style={{display:'flex', justifyContent:'flex-end', alignItems:'center', gap: 6}}>
         {version && <VersionPill meta={version}/>}
-        {skill && <span style={{fontSize: 9, fontFamily:'IBM Plex Mono', textTransform:'uppercase', letterSpacing:'0.1em', padding: '2px 5px', borderRadius: 3, background: 'var(--bg-3)', color:'var(--ink-2)'}}>skill</span>}
+        {isAlias
+          ? <AliasPill/>
+          : skill && <span style={{fontSize: 9, fontFamily:'IBM Plex Mono', textTransform:'uppercase', letterSpacing:'0.1em', padding: '2px 5px', borderRadius: 3, background: 'var(--bg-3)', color:'var(--ink-2)'}}>skill</span>
+        }
         <StarButton active={favorited} onClick={onToggleFav}/>
-        <CopyButton name={cmd.n}/>
+        {!isAlias && <CopyButton name={cmd.n}/>}
       </div>
     </button>
   );
@@ -1201,11 +1254,94 @@ function Detail({cmd, sticky, clear, favs, toggleFav, mobile, onSelect}) {
     );
   }
   const info = CATEGORIES.find(c => c.id === cmd.cat);
-  const Glyph = GLYPHS[cmd.g] || GLYPHS.help;
-  const skill = isSkillCmd(cmd.n);
+  const isAlias = !!cmd.alias_of;
+  const isRemoved = !!cmd.removed;
+  const parentCmd = isAlias ? CMDS.find(c => c.n === cmd.alias_of) : null;
+  const Glyph = isAlias
+    ? (parentCmd ? (GLYPHS[parentCmd.g] || GLYPHS.alias) : GLYPHS.alias)
+    : (GLYPHS[cmd.g] || GLYPHS.help);
+  const skill = !isAlias && isSkillCmd(cmd.n);
   const version = VERSION_META[cmd.n];
   const favorited = favs?.has(cmd.n);
 
+  /* Shared header: category breadcrumb + action buttons */
+  const detailHeader = (
+    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10}}>
+      <div style={{display:'flex', alignItems:'center', gap: 8}}>
+        <span style={{width:8, height:8, borderRadius:'50%', background: info.color}}/>
+        <span className="mono" style={{fontSize: 11, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--ink-2)'}}>{info.label}</span>
+      </div>
+      <div style={{display:'flex', alignItems:'center', gap: 4}}>
+        {toggleFav && (
+          <StarButton active={favorited} onClick={() => toggleFav(cmd.n)}/>
+        )}
+        {!isAlias && <CopyButton name={cmd.n}/>}
+        {(sticky || mobile) && (
+          <button onClick={clear} className="mono" style={{fontSize: 11, color:'var(--ink-3)', marginLeft: 4, padding: '4px 6px'}}>
+            {mobile ? 'close ×' : 'unpin ×'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  /* Alias detail view — only shows "Alias for /parent" */
+  if (isAlias) {
+    const aliasPane = (
+      <aside style={asideBase}>
+        {mobile && <div style={{width: 40, height: 4, borderRadius: 2, background: 'var(--line-2)', margin: '0 auto 4px'}}/>}
+        {detailHeader}
+        <div style={{
+          width: 96, height: 96, borderRadius: 12,
+          background: `color-mix(in oklch, ${info.color} 12%, var(--bg-2))`,
+          color: info.color,
+          display:'grid', placeItems:'center',
+          flex: 'none', opacity: 0.6,
+        }}>
+          <div style={{transform:'scale(2.4)'}}><Glyph/></div>
+        </div>
+        <div>
+          <div className="mono" style={{fontSize: 22, fontWeight: 500, letterSpacing:'-0.02em', color:'var(--ink-2)'}}>
+            /{cmd.n}
+          </div>
+          <div style={{display:'flex', gap: 6, flexWrap:'wrap', marginTop: 8}}>
+            <AliasPill/>
+          </div>
+        </div>
+        {parentCmd ? (
+          <button
+            onClick={() => onSelect(cmd.alias_of)}
+            style={{
+              display:'flex', alignItems:'center', gap: 10,
+              padding: '12px 14px', borderRadius: 8,
+              border: '1px solid var(--line)',
+              background: 'transparent', textAlign: 'left', width: '100%',
+              cursor: 'pointer', transition: 'background 0.1s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <span style={{fontSize: 13, color:'var(--ink-2)', flexShrink: 0}}>Alias for</span>
+            <span className="mono" style={{fontSize: 15, fontWeight: 600, color:'var(--ink)', flex: 1}}>/{cmd.alias_of}</span>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--ink-3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4l4 4-4 4"/></svg>
+          </button>
+        ) : (
+          <div style={{fontSize: 13, color:'var(--ink-2)'}}>
+            Alias for <span className="mono">/{cmd.alias_of}</span>
+          </div>
+        )}
+      </aside>
+    );
+    if (!mobile) return aliasPane;
+    return (
+      <>
+        <div onClick={clear} style={{position:'fixed', inset: 0, background:'rgba(0,0,0,0.4)', zIndex: 32, backdropFilter:'blur(2px)'}}/>
+        {aliasPane}
+      </>
+    );
+  }
+
+  /* Standard detail view */
   const pane = (
     <aside style={asideBase}>
       {mobile && (
@@ -1214,23 +1350,7 @@ function Detail({cmd, sticky, clear, favs, toggleFav, mobile, onSelect}) {
           margin: '0 auto 4px',
         }}/>
       )}
-      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap: 10}}>
-        <div style={{display:'flex', alignItems:'center', gap: 8}}>
-          <span style={{width:8, height:8, borderRadius:'50%', background: info.color}}/>
-          <span className="mono" style={{fontSize: 11, textTransform:'uppercase', letterSpacing:'0.08em', color:'var(--ink-2)'}}>{info.label}</span>
-        </div>
-        <div style={{display:'flex', alignItems:'center', gap: 4}}>
-          {toggleFav && (
-            <StarButton active={favorited} onClick={() => toggleFav(cmd.n)}/>
-          )}
-          <CopyButton name={cmd.n}/>
-          {(sticky || mobile) && (
-            <button onClick={clear} className="mono" style={{fontSize: 11, color:'var(--ink-3)', marginLeft: 4, padding: '4px 6px'}}>
-              {mobile ? 'close ×' : 'unpin ×'}
-            </button>
-          )}
-        </div>
-      </div>
+      {detailHeader}
 
       <div style={{
         width: 96, height: 96, borderRadius: 12,
@@ -1238,6 +1358,7 @@ function Detail({cmd, sticky, clear, favs, toggleFav, mobile, onSelect}) {
         color: info.color,
         display:'grid', placeItems:'center',
         flex: 'none',
+        opacity: isRemoved ? 0.55 : 1,
       }}>
         <div style={{transform:'scale(2.4)'}}><Glyph/></div>
       </div>
@@ -1249,7 +1370,7 @@ function Detail({cmd, sticky, clear, favs, toggleFav, mobile, onSelect}) {
         </div>
         {cmd.a && (
           <div className="mono" style={{fontSize: 12, color:'var(--ink-3)', marginTop: 4}}>
-            alias: {cmd.a}
+            also: {cmd.a}
           </div>
         )}
         <div style={{display:'flex', gap: 6, flexWrap:'wrap', marginTop: 8}}>
@@ -1265,17 +1386,39 @@ function Detail({cmd, sticky, clear, favs, toggleFav, mobile, onSelect}) {
         </div>
       </div>
 
-      <div style={{fontSize: 15, lineHeight: 1.5, color:'var(--ink)'}}>{cmd.s}</div>
+      <div style={{fontSize: 15, lineHeight: 1.5, color:'var(--ink)', opacity: isRemoved ? 0.7 : 1}}>{cmd.s}</div>
       {cmd.d && <div style={{fontSize: 13, lineHeight: 1.6, color:'var(--ink-2)'}}>{cmd.d}</div>}
+
+      {isRemoved && cmd.removed.replacement && (() => {
+        const replacementCmd = CMDS.find(c => c.n === cmd.removed.replacement);
+        return (
+          <div style={{fontSize: 13, color:'var(--ink-2)'}}>
+            {'Replaced by '}
+            {replacementCmd ? (
+              <button
+                onClick={() => onSelect(cmd.removed.replacement)}
+                className="mono"
+                style={{fontSize: 13, fontWeight: 600, color:'var(--c-session)', textDecoration:'underline', textDecorationStyle:'dotted', cursor:'pointer'}}
+              >
+                /{cmd.removed.replacement}
+              </button>
+            ) : (
+              <span className="mono" style={{fontSize: 13}}>/{cmd.removed.replacement}</span>
+            )}
+          </div>
+        );
+      })()}
 
       <RelatedSection related={cmd.related} onSelect={onSelect} mobile={mobile}/>
 
-      <div style={{marginTop: mobile ? 0 : 'auto', paddingTop: 16, borderTop:'1px dashed var(--line)', fontSize: 11, color:'var(--ink-3)', display:'flex', flexDirection:'column', gap:6}}>
-        <div className="mono" style={{textTransform:'uppercase', letterSpacing:'0.08em'}}>Syntax</div>
-        <code className="mono" style={{fontSize: 12, background:'var(--bg-3)', padding: '8px 10px', borderRadius: 4, color:'var(--ink)'}}>
-          /{cmd.n}{cmd.arg ? ' ' + cmd.arg : ''}
-        </code>
-      </div>
+      {!isRemoved && (
+        <div style={{marginTop: mobile ? 0 : 'auto', paddingTop: 16, borderTop:'1px dashed var(--line)', fontSize: 11, color:'var(--ink-3)', display:'flex', flexDirection:'column', gap:6}}>
+          <div className="mono" style={{textTransform:'uppercase', letterSpacing:'0.08em'}}>Syntax</div>
+          <code className="mono" style={{fontSize: 12, background:'var(--bg-3)', padding: '8px 10px', borderRadius: 4, color:'var(--ink)'}}>
+            /{cmd.n}{cmd.arg ? ' ' + cmd.arg : ''}
+          </code>
+        </div>
+      )}
     </aside>
   );
 
